@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Claude Code マスター講座</title>
+<style>
+:root {
+  --primary: #1e293b;
+  --primary-light: #475569;
+  --accent: #2563eb;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --purple: #7c3aed;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface2: #f1f5f9;
+  --text: #1e293b;
+  --text-dim: #64748b;
+  --border: #e2e8f0;
+  --terminal-bg: #1e293b;
+  --terminal-text: #38bdf8;
+  --radius: 14px;
+  --nav-h: 64px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+header {
+  background: var(--surface);
+  padding: 20px 16px 16px;
+  text-align: center;
+  position: sticky; top:0; z-index:100;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.85);
+}
+header h1 { font-size:18px; font-weight:800; color:var(--text); letter-spacing:-.3px; }
+header p { font-size:12px; color:var(--text-dim); margin-top:4px; }
+.back-btn {
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--accent); font-size:22px; cursor:pointer; padding:8px;
+}
+
+/* Nav */
+nav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px;
+  background: rgba(255,255,255,.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top:1px solid var(--border);
+  display:flex; z-index:200;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+nav button {
+  flex:1; background:none; border:none; color:var(--text-dim);
+  padding:10px 0 8px; font-size:10px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  transition: color .2s;
+}
+nav button .nav-icon { font-size:20px; }
+nav button.active { color:var(--accent); font-weight:600; }
+
+/* Tabs */
+.tab-content { display:none; padding:16px; }
+.tab-content.active { display:block; }
+
+/* Phase group */
+.phase-group { margin-bottom:20px; }
+.phase-header {
+  font-size:14px; font-weight:700; padding:8px 12px;
+  border-radius:8px; margin-bottom:8px;
+  display:flex; align-items:center; gap:8px;
+}
+
+/* Step card */
+.step-card {
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius: var(--radius);
+  padding:14px;
+  margin-bottom:8px;
+  display:flex; align-items:center; gap:12px;
+  cursor:pointer;
+  transition: all .2s;
+  box-shadow: var(--shadow-sm);
+}
+.step-card:active { transform:scale(0.98); }
+.step-card:hover { box-shadow: var(--shadow-md); }
+.step-card.completed { border-color: var(--success); background: #f0fdf4; }
+.step-icon {
+  width:42px; height:42px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.step-info { flex:1; min-width:0; }
+.step-info h3 { font-size:14px; font-weight:600; }
+.step-info p { font-size:11px; color:var(--text-dim); margin-top:2px; }
+.step-meta { text-align:right; flex-shrink:0; }
+.step-meta .time { font-size:11px; color:var(--text-dim); }
+.step-meta .score { font-size:11px; color:var(--success); margin-top:2px; }
+.step-meta .check { font-size:18px; color:var(--success); }
+
+/* Detail view */
+#detail-view { display:none; }
+.sub-tabs {
+  display:flex; gap:4px; padding:0 16px; margin-bottom:12px;
+}
+.sub-tab {
+  flex:1; padding:8px; text-align:center;
+  background:var(--surface2); border:none;
+  border-radius:10px; font-size:12px; cursor:pointer; color:var(--text-dim);
+  transition: all .2s; font-weight:500;
+}
+.sub-tab.active { background:var(--accent); color:#fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+.sub-content { display:none; padding:0 16px 16px; }
+.sub-content.active { display:block; }
+
+/* Content blocks */
+.content-card {
+  background:var(--surface); border-radius:var(--radius);
+  padding:16px; margin-bottom:12px;
+  border:1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.content-card h4 { font-size:14px; margin-bottom:8px; color:var(--text); font-weight:700; }
+.content-card p, .content-card li { font-size:13px; line-height:1.7; color:var(--text-dim); }
+.content-card ul { padding-left:20px; }
+.content-card li { margin-bottom:4px; }
+
+/* Diagram */
+.diagram {
+  background: linear-gradient(135deg, #f0f4ff, #f8fafc);
+  border-radius: var(--radius); padding:16px; margin:12px 0;
+  border:1px solid #dbeafe;
+}
+.diagram-row {
+  display:flex; align-items:center; justify-content:center;
+  gap:8px; flex-wrap:wrap; margin:8px 0;
+}
+.diagram-box {
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px; padding:8px 12px;
+  font-size:12px; text-align:center; min-width:70px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+}
+.diagram-box.highlight {
+  border-color:var(--accent); background:#eff6ff; color:var(--accent); font-weight:600;
+}
+.diagram-arrow { font-size:16px; color:var(--accent); }
+
+/* Table */
+.info-table {
+  width:100%; border-collapse:collapse; margin:8px 0;
+  font-size:12px;
+}
+.info-table th, .info-table td {
+  padding:8px; text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.info-table th { color:var(--text); font-weight:700; }
+
+/* Terminal code block */
+.terminal {
+  background:var(--terminal-bg);
+  border-radius:10px; padding:14px;
+  margin:10px 0; position:relative;
+  border:none;
+  overflow-x:auto;
+  box-shadow: var(--shadow-md);
+}
+.terminal code {
+  font-family:"SF Mono","Fira Code",monospace;
+  font-size:12px; color:var(--terminal-text);
+  line-height:1.6; white-space:pre-wrap; word-break:break-all;
+}
+.copy-btn {
+  position:absolute; top:8px; right:8px;
+  background:rgba(255,255,255,.12); border:none;
+  color:rgba(255,255,255,.6); border-radius:6px;
+  padding:4px 10px; font-size:11px; cursor:pointer;
+  transition: all .2s;
+}
+.copy-btn:hover { background:rgba(255,255,255,.2); }
+.copy-btn.copied { background:var(--success); color:#fff; }
+
+/* Tips */
+.tip {
+  background: linear-gradient(135deg, #eff6ff, #f0f4ff);
+  border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;
+  padding:12px 14px; margin:10px 0; font-size:12px;
+  color:var(--text-dim); line-height:1.6;
+}
+.tip::before { content:"💡 Tip: "; font-weight:700; color:var(--accent); }
+
+/* Quiz */
+.quiz-q { margin-bottom:16px; }
+.quiz-q p { font-size:13px; font-weight:600; margin-bottom:8px; }
+.quiz-q .q-label { font-size:11px; color:var(--text-dim); margin-bottom:4px; }
+.quiz-btn {
+  display:block; width:100%; padding:12px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; color:var(--text); font-size:13px;
+  text-align:left; cursor:pointer; margin-bottom:6px;
+  transition: all .2s; box-shadow: var(--shadow-sm);
+}
+.quiz-btn:hover:not(:disabled) { border-color:var(--accent); background:#f8faff; }
+.quiz-btn:disabled { cursor:default; }
+.quiz-btn.correct { background:#ecfdf5; border-color:var(--success); color:#065f46; }
+.quiz-btn.wrong { background:#fef2f2; border-color:var(--danger); color:#991b1b; }
+.quiz-explain {
+  font-size:12px; color:#065f46; margin-top:6px;
+  padding:10px; background:#ecfdf5; border-radius:8px;
+  display:none; line-height:1.5;
+}
+.quiz-result {
+  text-align:center; padding:16px;
+  background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-md);
+  margin-top:12px; display:none;
+}
+.quiz-result h4 { font-size:16px; margin-bottom:4px; }
+.quiz-result p { font-size:13px; color:var(--text-dim); }
+.retry-btn {
+  margin-top:12px; padding:10px 24px;
+  background:var(--accent); color:#fff; border:none;
+  border-radius:10px; font-size:13px; cursor:pointer;
+  box-shadow: 0 2px 8px rgba(37,99,235,.3);
+  transition:all .2s;
+}
+.retry-btn:hover { box-shadow: 0 4px 12px rgba(37,99,235,.4); }
+
+/* Progress tab */
+.progress-ring-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  padding:24px 0;
+}
+.progress-ring-wrap p { margin-top:8px; font-size:14px; color:var(--text-dim); }
+.phase-progress { margin-bottom:16px; }
+.phase-progress h4 { font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.progress-bar-bg {
+  height:8px; background:var(--surface2); border-radius:4px; overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%; border-radius:4px; transition:width .4s;
+}
+.score-list { margin-top:8px; }
+.score-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 12px; background:var(--surface);
+  border-radius:10px; margin-bottom:6px; font-size:13px;
+  border:1px solid var(--border); box-shadow: var(--shadow-sm);
+}
+.score-badge {
+  padding:2px 10px; border-radius:12px; font-size:11px; font-weight:600;
+}
+.reset-btn {
+  display:block; width:100%; margin-top:20px; padding:14px;
+  background:#fff; color:var(--danger); border:1px solid var(--danger);
+  border-radius:var(--radius); font-size:14px; cursor:pointer;
+  transition:all .2s;
+}
+.reset-btn:hover { background:var(--danger); color:#fff; }
+
+/* Update tab */
+.fetch-btn {
+  display:block; width:100%; padding:14px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  color:#fff; border:none; border-radius:var(--radius);
+  font-size:14px; font-weight:600; cursor:pointer;
+  transition:all .2s;
+  box-shadow: 0 4px 14px rgba(37,99,235,.3);
+}
+.fetch-btn:hover { box-shadow: 0 6px 20px rgba(37,99,235,.4); }
+.fetch-btn:disabled { opacity:.5; box-shadow:none; }
+.update-cards { margin-top:16px; }
+.update-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:14px; margin-bottom:10px;
+  box-shadow: var(--shadow-sm);
+}
+.update-card h4 { font-size:14px; margin-bottom:4px; }
+.update-card .date { font-size:11px; color:var(--text-dim); margin-bottom:6px; }
+.update-card .summary { font-size:13px; color:var(--text-dim); line-height:1.5; }
+.impact-badge {
+  display:inline-block; padding:2px 8px; border-radius:10px;
+  font-size:10px; font-weight:700; margin-left:6px;
+}
+.impact-high { background:#fef2f2; color:#dc2626; }
+.impact-medium { background:#fffbeb; color:#b45309; }
+.impact-low { background:#ecfdf5; color:#059669; }
+.error-msg { color:var(--danger); font-size:13px; margin-top:12px; padding:12px; background:rgba(220,38,38,.1); border-radius:8px; }
+.loading { text-align:center; padding:20px; color:var(--text-dim); font-size:13px; }
+.spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; margin-right:8px; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header id="main-header">
+  <h1>📘 Claude Code マスター講座</h1>
+  <p>ゼロから学ぶAI開発パートナー活用術</p>
+</header>
+<header id="detail-header" style="display:none">
+  <button class="back-btn" onclick="showList()">←</button>
+  <h1 id="detail-title"></h1>
+  <p id="detail-subtitle"></p>
+</header>
+
+<!-- Tab 1: Learn -->
+<div class="tab-content active" id="tab-learn">
+  <div id="step-list"></div>
+</div>
+
+<!-- Detail View -->
+<div id="detail-view">
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="switchSub(0)">📖 学習</button>
+    <button class="sub-tab" onclick="switchSub(1)">🛠️ 実践</button>
+    <button class="sub-tab" onclick="switchSub(2)">🧪 テスト</button>
+  </div>
+  <div class="sub-content active" id="sub-learn"></div>
+  <div class="sub-content" id="sub-practice"></div>
+  <div class="sub-content" id="sub-test"></div>
+</div>
+
+<!-- Tab 2: Progress -->
+<div class="tab-content" id="tab-progress"></div>
+
+<!-- Tab 3: Update -->
+<div class="tab-content" id="tab-update">
+  <h3 style="margin-bottom:12px">🔄 最新情報</h3>
+  <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Claude Codeの最新アップデート情報を取得します。</p>
+  <button class="fetch-btn" id="fetchBtn" onclick="fetchUpdates()">最新情報を取得する</button>
+  <div id="update-result"></div>
+</div>
+
+<nav>
+  <button class="active" onclick="switchTab(0)" id="nav0"><span class="nav-icon">📚</span>学習</button>
+  <button onclick="switchTab(1)" id="nav1"><span class="nav-icon">📊</span>進捗</button>
+  <button onclick="switchTab(2)" id="nav2"><span class="nav-icon">🔄</span>更新</button>
+</nav>
+
+<script>
+// ===== DATA =====
+const PHASES = [
+  { id:1, name:"🏗️ 基礎マスター", color:"#2563eb", steps:[1,2,3] },
+  { id:2, name:"⚡ 業務自動化", color:"#d97706", steps:[4,5,6] },
+  { id:3, name:"🚀 開発スキル", color:"#059669", steps:[7,8,9] },
+  { id:4, name:"🎯 上級活用", color:"#7c3aed", steps:[10,11,12] }
+];
+
+const STEPS = [
+  // Phase 1
+  {
+    id:1, title:"Claude Codeの全体像", time:"15分", icon:"🏗️", phase:1,
+    learn:`
+<div class="content-card"><h4>Claude Codeとは</h4>
+<p>Claude Codeはターミナルで動くAIアシスタント。PCのファイルを直接読み書きし、コマンドを実行し、プロジェクト全体を理解して作業します。</p></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">アーキテクチャ</p>
+<div class="diagram-row"><div class="diagram-box highlight">🧑 あなた</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">🤖 Claude Code</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️</span></div>
+<div class="diagram-row"><div class="diagram-box">📁 ファイル操作</div><div class="diagram-box">💻 コマンド実行</div></div>
+<div class="diagram-row"><div class="diagram-box">📝 Git管理</div><div class="diagram-box">🔌 外部連携</div></div></div>
+
+<div class="content-card"><h4>3つの動作モード</h4>
+<table class="info-table"><tr><th>💬 対話モード</th><td><code>claude</code> で起動、チャット形式</td></tr>
+<tr><th>⚡ ワンショット</th><td><code>claude -p "指示"</code> で1回実行</td></tr>
+<tr><th>🔗 パイプ</th><td><code>git diff | claude -p "レビューして"</code></td></tr></table></div>
+
+<div class="content-card"><h4>できること一覧</h4>
+<ul><li>📁 ファイルの作成・編集・削除</li><li>💻 コード生成・修正</li><li>📝 Gitコミット・ブランチ操作</li><li>🔌 MCP経由の外部連携</li><li>🔍 バグの特定と修正</li></ul></div>
+
+<div class="tip">Claude Codeは"プログラミングができるAI秘書"。日本語で指示するだけで動きます。</div>`,
+
+    practice:`
+<div class="content-card"><h4>① 環境チェック</h4>
+<p>まずは環境が正しくセットアップされているか確認しましょう。</p></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>claude doctor</code></div>
+
+<div class="content-card"><h4>② ワンショット体験</h4>
+<p>1行の指示でClaude Codeの回答を得てみましょう。</p></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>claude -p "私のOSとシェルの種類を教えて"</code></div>
+
+<div class="content-card"><h4>③ 対話モード体験</h4>
+<p>対話モードで起動し、ヘルプを確認します。</p></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>claude</code></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>/help</code></div>`,
+
+    quiz:[
+      { q:"Claude Codeはどこで動きますか？", opts:["ブラウザ","ターミナル","スマホアプリ","Excelアドイン"], ans:1, explain:"Claude Codeはターミナル（コマンドライン）で動作するAIアシスタントです。" },
+      { q:"-p オプションの意味は？", opts:["プレビュー表示","ワンショット実行","プロジェクト指定","パスワード入力"], ans:1, explain:"-p はワンショット（1回だけ実行して結果を返す）モードです。" },
+      { q:"Claude Codeに最低限必要なプランは？", opts:["Free","Pro（$20/月）","Team","Enterprise"], ans:1, explain:"Proプラン（月額$20）から利用可能です。" }
+    ]
+  },
+  {
+    id:2, title:"基本コマンド完全攻略", time:"15分", icon:"⌨️", phase:1,
+    learn:`
+<div class="content-card"><h4>必須コマンド一覧</h4>
+<table class="info-table">
+<tr><th>コマンド</th><th>説明</th></tr>
+<tr><td><code>/help</code></td><td>ヘルプ表示</td></tr>
+<tr><td><code>/init</code></td><td>CLAUDE.md生成</td></tr>
+<tr><td><code>/cost</code></td><td>費用確認</td></tr>
+<tr><td><code>/doctor</code></td><td>環境診断</td></tr>
+<tr><td><code>/compact</code></td><td>コンテキスト圧縮</td></tr>
+<tr><td><code>/model</code></td><td>モデル切替</td></tr>
+<tr><td><code>/clear</code></td><td>会話リセット</td></tr>
+<tr><td><code>/memory</code></td><td>メモリ管理</td></tr>
+<tr><td><code>/review</code></td><td>コードレビュー</td></tr>
+<tr><td><code>/permissions</code></td><td>権限管理</td></tr>
+</table></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">困った時のフロー</p>
+<div class="diagram-row"><div class="diagram-box">❓ わからない</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">/help</div></div>
+<div class="diagram-row"><div class="diagram-box">⚠️ おかしい</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">/doctor</div></div>
+<div class="diagram-row"><div class="diagram-box">💰 コスト</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">/cost</div></div></div>
+
+<div class="tip">迷ったら /help → /doctor → /cost の3つだけ覚えればOK</div>`,
+
+    practice:`
+<div class="content-card"><h4>基本コマンドを試す</h4>
+<p>Claude Code対話モードで順番に実行してみましょう。</p></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>/cost</code></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>/model</code></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>/doctor</code></div>`,
+
+    quiz:[
+      { q:"動作が遅い時に使うコマンドは？", opts:["/clear","/compact","/doctor","/help"], ans:1, explain:"/compact でコンテキストを圧縮し、動作を高速化できます。" },
+      { q:"/init が生成するものは？", opts:["package.json","CLAUDE.md","README.md",".gitignore"], ans:1, explain:"/init はプロジェクトの指示書である CLAUDE.md を自動生成します。" },
+      { q:"OpusとSonnetの違いは？", opts:["Opusが速い","Opusが賢くSonnetが速い","同じ性能","Sonnetが賢い"], ans:1, explain:"Opusはより高精度で複雑なタスク向き、Sonnetは高速でコスパが良いモデルです。" }
+    ]
+  },
+  {
+    id:3, title:"CLAUDE.mdを使いこなす", time:"20分", icon:"📄", phase:1,
+    learn:`
+<div class="content-card"><h4>CLAUDE.mdとは</h4>
+<p>新入社員への引き継ぎマニュアルのようなもの。一度書けば毎回の説明が不要になります。</p></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">階層構造（後から読んだものが優先）</p>
+<div class="diagram-row"><div class="diagram-box">🌐 ~/.claude/CLAUDE.md</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️ 上書き</span></div>
+<div class="diagram-row"><div class="diagram-box highlight">📂 プロジェクト/CLAUDE.md</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️ 上書き</span></div>
+<div class="diagram-row"><div class="diagram-box">📁 サブフォルダ/CLAUDE.md</div></div></div>
+
+<div class="content-card"><h4>P-Brain用テンプレート例</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code># P-Brain プロジェクト
+
+## 概要
+パチンコ業界向けデータ分析プラットフォーム
+
+## 技術スタック
+- フロントエンド: HTML/CSS/JavaScript
+- データ: CSV, JSON
+- 出力: HTMLレポート
+
+## ルール
+- 日本語でコメント
+- ファイルはoutput/に保存
+- Chart.jsでグラフ描画</code></div>
+
+<div class="content-card"><h4>置き場所による適用範囲</h4>
+<table class="info-table">
+<tr><th>場所</th><th>範囲</th></tr>
+<tr><td>📂 プロジェクトルート</td><td>そのプロジェクトのみ</td></tr>
+<tr><td>🌐 ~/.claude/</td><td>全プロジェクト共通</td></tr>
+<tr><td>📁 サブフォルダ</td><td>そのフォルダ固有</td></tr>
+</table></div>
+
+<div class="tip">書きすぎると無視されます。20〜30行が理想的です。</div>`,
+
+    practice:`
+<div class="content-card"><h4>① CLAUDE.mdを自動生成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>/init</code></div>
+
+<div class="content-card"><h4>② P-Brain業務用にカスタマイズ</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>CLAUDE.mdを以下の内容で更新して：
+
+# P-Brain開発プロジェクト
+## 概要
+パチンコ業界向けデータ分析プラットフォーム「P-Brain」の開発
+
+## 技術スタック
+- HTML/CSS/JS（1ファイル完結）
+- Chart.jsでグラフ
+- localStorage進捗保存
+
+## ルール
+- 出力はoutput/フォルダに
+- 日本語コメント必須
+- モバイルファースト設計</code></div>`,
+
+    quiz:[
+      { q:"CLAUDE.mdの役割は？", opts:["パッケージ管理","永続的な指示書","テストファイル","設定ファイル"], ans:1, explain:"CLAUDE.mdはClaude Codeへの永続的な指示書。毎回読み込まれます。" },
+      { q:"~/.claude/CLAUDE.mdの適用範囲は？", opts:["現在のフォルダのみ","全プロジェクト共通","Gitリポジトリ内","特定の言語のみ"], ans:1, explain:"ホームディレクトリの.claude/に置くと、全プロジェクトに共通で適用されます。" },
+      { q:"CLAUDE.mdに書く量の目安は？", opts:["5行以内","20〜30行","100行以上","制限なし"], ans:1, explain:"書きすぎると無視されるため、20〜30行がベストです。" }
+    ]
+  },
+  // Phase 2
+  {
+    id:4, title:"メール・文書の自動化", time:"15分", icon:"📧", phase:2,
+    learn:`
+<div class="content-card"><h4>自動化できる文書</h4>
+<ul><li>📧 定型メール（アポイント依頼・お礼・フォローアップ）</li>
+<li>📝 議事録（会議メモから構造化された議事録へ）</li>
+<li>📊 報告書（週次・月次レポート）</li>
+<li>📢 社内連絡（通知・アナウンス）</li></ul></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">文書自動化フロー</p>
+<div class="diagram-row"><div class="diagram-box">📋 指示</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">🤖 Claude Code</div><span class="diagram-arrow">→</span><div class="diagram-box">📄 完成文書</div></div></div>
+
+<div class="tip">具体的な条件（宛先・日時・目的）をプロンプトに含めるほど、精度の高い文書が生成されます。</div>`,
+
+    practice:`
+<div class="content-card"><h4>① クライアントメール生成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>以下の条件でクライアントへのメールを作成して
+output/email.txt に保存して：
+
+宛先: 株式会社サンプルホール 山田部長
+件名: P-Brain導入のご提案について
+目的: 来週のアポイント取得
+ポイント:
+- データ分析による稼働率改善の実績を簡潔に
+- 30分程度のデモを提案
+- 丁寧だが堅すぎないトーン</code></div>
+
+<div class="content-card"><h4>② 議事録テンプレート生成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-Brain勉強会企画会議の議事録テンプレートを
+output/minutes-template.md に作成して：
+
+含める項目:
+- 日時・場所・参加者
+- 議題一覧
+- 各議題の討議内容・決定事項・アクション
+- 次回予定</code></div>`,
+
+    quiz:[
+      { q:"メール生成で最も重要なことは？", opts:["長い文章を書く","具体的条件をプロンプトに含める","テンプレートを使う","英語で指示する"], ans:1, explain:"宛先・目的・トーンなど具体的な条件を含めるほど、適切な文書が生成されます。" },
+      { q:"保存先の指定方法は？", opts:["設定ファイルで指定","プロンプト内にパスを明記","自動で決まる","後から移動"], ans:1, explain:"プロンプトに「output/email.txt に保存して」のようにパスを明記します。" },
+      { q:"ワンショットでメール生成するコマンドは？", opts:["claude email","claude -p \"指示\"","claude --mail","claude generate"], ans:1, explain:"claude -p \"指示\" でワンショット実行し、即座にファイルを生成できます。" }
+    ]
+  },
+  {
+    id:5, title:"見積書・資料の自動生成", time:"20分", icon:"📊", phase:2,
+    learn:`
+<div class="content-card"><h4>生成可能な形式</h4>
+<table class="info-table">
+<tr><th>形式</th><th>用途</th></tr>
+<tr><td>📕 PDF</td><td>納品物・正式書類</td></tr>
+<tr><td>📘 Word</td><td>編集可能な文書</td></tr>
+<tr><td>📙 PowerPoint</td><td>プレゼン資料</td></tr>
+<tr><td>📗 Excel</td><td>データ・計算シート</td></tr>
+<tr><td>📄 HTML</td><td>ブラウザで即表示</td></tr>
+</table></div>
+
+<div class="tip">「Markdownで下書き → Word/PDFに変換」の2段階アプローチが最も確実です。HTMLは直接ブラウザで開けるため最も実用的です。</div>`,
+
+    practice:`
+<div class="content-card"><h4>① P-Brain見積書HTML生成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-Brainの見積書をHTMLで作成して
+output/estimate.html に保存：
+
+見積先: 株式会社サンプルホール 御中
+件名: P-Brainデータ分析プラットフォーム導入
+内訳:
+- 初期導入費: ¥500,000
+- 月額利用料: ¥80,000
+- データ移行費: ¥150,000
+- カスタマイズ費: ¥200,000
+有効期限: 発行日より30日
+デザイン: プロフェッショナルで印刷可能</code></div>
+
+<div class="content-card"><h4>② 勉強会スライド構成案</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-Brain勉強会のスライド構成案をHTMLで作成して
+output/seminar-slides.html に保存：
+
+テーマ: データ分析で実現するシェア奪取
+対象: パチンコホール経営者
+スライド数: 10枚程度
+含める内容:
+- 業界の課題
+- P-Brainの解決策
+- 導入事例（架空でOK）
+- 料金プラン</code></div>`,
+
+    quiz:[
+      { q:"Claude Codeで最も実用的な出力形式は？", opts:["PDF","Word","HTML","Excel"], ans:2, explain:"HTMLはブラウザで即表示でき、デザインの自由度も高いため最も実用的です。" },
+      { q:"テンプレート化のメリットは？", opts:["速度向上のみ","品質統一のみ","すべて正解（速度・品質・再利用）","コスト削減のみ"], ans:2, explain:"テンプレート化により、速度向上・品質統一・再利用性のすべてが向上します。" },
+      { q:"PPTXは直接生成できる？", opts:["できない","できる","プラグインが必要","Proプラン限定"], ans:1, explain:"Claude Codeはpython-pptxなどを使ってPPTXを直接生成できます。" }
+    ]
+  },
+  {
+    id:6, title:"カスタムコマンドで効率化", time:"20分", icon:"⚡", phase:2,
+    learn:`
+<div class="content-card"><h4>カスタムコマンドの仕組み</h4>
+<p><code>.claude/commands/名前.md</code> にMarkdownファイルを置くと、<code>/名前</code> で呼び出せるようになります。</p></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">デモ</p>
+<div class="diagram-row"><div class="diagram-box highlight">⌨️ /estimate 株式会社サンプル</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️</span></div>
+<div class="diagram-row"><div class="diagram-box">📄 estimate.html を自動生成</div></div></div>
+
+<div class="content-card"><h4>スキルとの違い</h4>
+<table class="info-table">
+<tr><th></th><th>コマンド</th><th>スキル</th></tr>
+<tr><td>呼び出し</td><td>手動（/名前）</td><td>自動認識</td></tr>
+<tr><td>場所</td><td>.claude/commands/</td><td>.claude/skills/</td></tr>
+<tr><td>引数</td><td>$ARGUMENTS</td><td>なし</td></tr>
+</table></div>`,
+
+    practice:`
+<div class="content-card"><h4>3つのカスタムコマンドを一括作成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>以下の3つのカスタムコマンドを作成して：
+
+1. .claude/commands/estimate.md
+→ $ARGUMENTSの会社名で見積書HTMLを生成
+→ output/estimate-{会社名}.html に保存
+
+2. .claude/commands/email.md
+→ $ARGUMENTSの条件でビジネスメールを生成
+→ output/email.txt に保存
+
+3. .claude/commands/weekly.md
+→ 今週のGitコミットを分析して週次報告書を生成
+→ output/weekly-report.html に保存
+
+各ファイルには具体的な指示とテンプレートを含めて。</code></div>`,
+
+    quiz:[
+      { q:"カスタムコマンドの保存場所は？", opts:["~/.config/claude/",".claude/commands/","node_modules/","package.json"], ans:1, explain:".claude/commands/ フォルダにMarkdownファイルとして保存します。" },
+      { q:"スキルとの違いは？", opts:["違いはない","スキルは自動認識、コマンドは手動呼び出し","スキルは有料","コマンドは英語のみ"], ans:1, explain:"コマンドはユーザーが明示的に呼び出し、スキルはClaude Codeが状況に応じて自動認識します。" },
+      { q:"$ARGUMENTSとは？", opts:["環境変数","ユーザーが渡す引数","ファイル名","API キー"], ans:1, explain:"$ARGUMENTSはコマンド実行時にユーザーが渡す引数を受け取る変数です。" }
+    ]
+  },
+  // Phase 3
+  {
+    id:7, title:"Webアプリを作ってみよう", time:"25分", icon:"🌐", phase:3,
+    learn:`
+<div class="content-card"><h4>プログラミング不要のアプリ開発</h4>
+<p>日本語で指示するだけでWebアプリが完成します。コードを1行も書く必要はありません。</p></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">開発フロー</p>
+<div class="diagram-row"><div class="diagram-box">💡 アイデア</div><span class="diagram-arrow">→</span><div class="diagram-box highlight">🤖 Claude Code生成</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️</span></div>
+<div class="diagram-row"><div class="diagram-box">👀 確認&フィードバック</div><span class="diagram-arrow">→</span><div class="diagram-box">🔄 改善</div></div></div>
+
+<div class="content-card"><h4>作れるもの</h4>
+<ul><li>🛠️ 業務ツール（タスク管理・顧客管理）</li>
+<li>🧮 計算ツール（見積もり・ROI計算）</li>
+<li>📊 ダッシュボード（売上・KPI表示）</li>
+<li>📝 フォーム（アンケート・申込）</li></ul></div>
+
+<div class="tip">完璧な仕様書は不要。大まかに伝えて→出来上がり確認→修正、のイテレーションが効率的です。</div>`,
+
+    practice:`
+<div class="content-card"><h4>P-Brain ROI計算ツールを作る</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-BrainのROI計算ツールをHTMLで作成して
+output/roi-calculator.html に保存：
+
+入力項目:
+- 月間設置台数（スライダー: 100〜1000台）
+- 現在の稼働率（%）
+- 改善目標（%）
+- P-Brain月額料金
+
+出力:
+- 増収見込み（月額・年額）
+- ROI（投資対効果）
+- 投資回収期間
+
+デザイン:
+- ダーク系モダンUI
+- Chart.jsでグラフ表示（棒グラフ: 導入前後比較）
+- リアルタイム計算（入力変更で即反映）
+- スマホ対応</code></div>`,
+
+    quiz:[
+      { q:"アプリ制作で最も大切なことは？", opts:["プログラミング知識","具体的なイメージ","高スペックPC","有料ツール"], ans:1, explain:"具体的な完成イメージがあるほど、Claude Codeは的確なアプリを生成します。" },
+      { q:"イテレーションとは？", opts:["繰り返し実行","作る→確認→修正の繰り返し","自動テスト","バグ修正"], ans:1, explain:"作る→確認→修正を繰り返して品質を上げていくプロセスです。" },
+      { q:"1ファイルHTMLのメリットは？", opts:["高速動作","配布・共有が簡単","セキュリティが高い","自動更新"], ans:1, explain:"1つのHTMLファイルなので、メール添付やチャット送信で簡単に共有できます。" }
+    ]
+  },
+  {
+    id:8, title:"LP・Webサイトを作る", time:"25分", icon:"🎨", phase:3,
+    learn:`
+<div class="content-card"><h4>LPの必須要素</h4>
+<table class="info-table">
+<tr><th>要素</th><th>役割</th></tr>
+<tr><td>🎬 ヒーロー</td><td>一目で価値が伝わるキャッチコピー</td></tr>
+<tr><td>❓ 課題提起</td><td>ターゲットの悩みに共感</td></tr>
+<tr><td>💡 解決策</td><td>自社サービスで解決できることを提示</td></tr>
+<tr><td>📈 実績</td><td>数字や事例で信頼性を担保</td></tr>
+<tr><td>🔘 CTA</td><td>具体的な行動を促すボタン</td></tr>
+</table></div>
+
+<div class="tip">「誰に・何を・なぜ今」を最初に決めてからClaude Codeに指示しましょう。</div>`,
+
+    practice:`
+<div class="content-card"><h4>P-Brain LPを生成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-BrainのランディングページをHTMLで作成して
+output/p-brain-lp.html に保存：
+
+ターゲット: パチンコホール経営者
+テーマ: ダーク＆プロフェッショナル
+
+セクション構成:
+1. ヒーロー（キャッチコピー + CTA）
+2. 課題提起（3つの経営課題）
+3. P-Brainの解決策
+4. 機能紹介（3つの主要機能）
+5. 導入効果（数字で表示）
+6. 導入事例（2社）
+7. 料金プラン（3段階）
+8. CTA + お問い合わせフォーム
+
+デザイン要件:
+- スクロールアニメーション
+- グラデーション背景
+- レスポンシブ対応
+- スムーズスクロール</code></div>`,
+
+    quiz:[
+      { q:"CTAとは何の略？", opts:["Click To Action","Call To Action","Create The App","Check The Answer"], ans:1, explain:"CTA = Call To Action。ユーザーに具体的な行動（申込・問合せ等）を促す要素です。" },
+      { q:"LP制作で最初に決めることは？", opts:["デザインカラー","誰に何をなぜ","ページ数","使用フォント"], ans:1, explain:"「誰に・何を・なぜ今」を明確にすることで、効果的なLPが作れます。" },
+      { q:"Claude Code製LPの最大メリットは？", opts:["無料で作れる","修正が即座","SEO対策済み","自動公開"], ans:1, explain:"テキストで指示するだけなので、修正・改善が即座にできます。" }
+    ]
+  },
+  {
+    id:9, title:"データ分析・レポート自動化", time:"20分", icon:"📈", phase:3,
+    learn:`
+<div class="content-card"><h4>分析の種類</h4>
+<ul><li>📐 基本統計（平均・中央値・分散）</li>
+<li>📈 トレンド分析（時系列の変化）</li>
+<li>⚖️ 比較分析（店舗間・期間間）</li>
+<li>🔍 異常検知（外れ値の発見）</li>
+<li>📋 レポート生成（HTMLダッシュボード）</li></ul></div>
+
+<div class="tip">「何を知りたいか」を明確にしましょう。漠然とした指示より具体的な問いが良い結果を生みます。</div>`,
+
+    practice:`
+<div class="content-card"><h4>サンプルデータ生成→分析→レポート</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>以下を一括で実行して：
+
+1. サンプルCSVデータ生成:
+   output/sample-data.csv
+   - パチンコホール5店舗（A〜E）
+   - 6ヶ月分（2024年7月〜12月）
+   - 項目: 店舗名,月,売上,稼働率,来客数,台数
+
+2. データ分析:
+   - 店舗別売上推移
+   - 稼働率と売上の相関
+   - 月別トレンド
+   - 最も改善が必要な店舗の特定
+
+3. HTMLレポート生成:
+   output/analysis-report.html
+   - Chart.jsでグラフ（折れ線・棒・散布図）
+   - 分析結果のサマリーテーブル
+   - 改善提案セクション
+   - ダーク系デザイン</code></div>`,
+
+    quiz:[
+      { q:"分析依頼で最も大切なことは？", opts:["大量のデータ","何を知りたいかを明確に","高スペックPC","統計学の知識"], ans:1, explain:"「何を知りたいか」を具体的に伝えることで、的確な分析結果が得られます。" },
+      { q:"Chart.jsとは？", opts:["表計算ソフト","Webグラフ描画ライブラリ","データベース","AI分析ツール"], ans:1, explain:"Chart.jsはJavaScriptでグラフを描画するオープンソースライブラリです。" },
+      { q:"CSVとは？", opts:["画像形式","カンマ区切りデータファイル","プログラミング言語","データベース"], ans:1, explain:"CSV = Comma Separated Values。カンマ区切りのシンプルなデータ形式です。" }
+    ]
+  },
+  // Phase 4
+  {
+    id:10, title:"MCP連携で拡張する", time:"20分", icon:"🔌", phase:4,
+    learn:`
+<div class="content-card"><h4>MCPとは</h4>
+<p>Model Context Protocol — Claude Codeを外部ツールと接続する仕組みです。</p></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">MCP接続イメージ</p>
+<div class="diagram-row"><div class="diagram-box">📁 Google Drive</div><div class="diagram-box">💬 Slack</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬆️ MCP ⬆️</span></div>
+<div class="diagram-row"><div class="diagram-box highlight">🤖 Claude Code</div></div>
+<div class="diagram-row"><span class="diagram-arrow">⬇️ MCP ⬇️</span></div>
+<div class="diagram-row"><div class="diagram-box">🐙 GitHub</div><div class="diagram-box">🌐 ブラウザ</div></div></div>
+
+<div class="content-card"><h4>⚠️ 注意事項</h4>
+<p>MCPサーバーの実行には <strong>Node.js 18以上</strong> が必要です。</p></div>`,
+
+    practice:`
+<div class="content-card"><h4>ファイルシステムMCP設定ガイドを依頼</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>ファイルシステムMCPサーバーの設定方法を
+ステップバイステップで教えて。
+
+含めてほしい内容：
+- 必要な前提条件（Node.js等）
+- .mcp.json の書き方
+- 設定の確認方法
+- よくあるエラーと対処法</code></div>`,
+
+    quiz:[
+      { q:"MCPの略は？", opts:["Machine Control Program","Model Context Protocol","Multi Cloud Platform","Managed Code Process"], ans:1, explain:"MCP = Model Context Protocol。Claude Codeと外部サービスを接続するプロトコルです。" },
+      { q:"MCPサーバーに追加で必要なものは？", opts:["Python","Node.js 18+","Docker","Java"], ans:1, explain:"MCPサーバーの実行にはNode.js 18以上が必要です。" },
+      { q:"MCP設定ファイル名は？", opts:["mcp.config","settings.json",".mcp.json","claude.mcp"], ans:2, explain:".mcp.json ファイルにMCPサーバーの設定を記述します。" }
+    ]
+  },
+  {
+    id:11, title:"エージェント＆スキル活用", time:"20分", icon:"🤖", phase:4,
+    learn:`
+<div class="content-card"><h4>エージェントの種類</h4>
+<ul><li>📋 <strong>Task Agent</strong> — 複雑なタスクを自律的に実行</li>
+<li>🔍 <strong>Explore Agent</strong> — コードベースの調査・探索</li>
+<li>🎯 <strong>カスタムAgent</strong> — 独自のエージェントを定義</li></ul></div>
+
+<div class="content-card"><h4>スキルの定義</h4>
+<table class="info-table">
+<tr><th>項目</th><th>内容</th></tr>
+<tr><td>保存場所</td><td><code>.claude/skills/スキル名/SKILL.md</code></td></tr>
+<tr><td>特徴</td><td>Claude Codeが状況に応じて自動認識</td></tr>
+<tr><td>共有</td><td>Web/Desktop/Codeで横断利用可能</td></tr>
+</table></div>`,
+
+    practice:`
+<div class="content-card"><h4>2つのスキルを一括作成</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>以下の2つのスキルを作成して：
+
+1. .claude/skills/competitor-analysis/SKILL.md
+   トリガー: 競合分析や市場調査に関する質問
+   機能: パチンコ業界の競合他社の
+   データ分析サービスを調査・比較
+   出力: 比較表付きHTMLレポート
+
+2. .claude/skills/seminar-material/SKILL.md
+   トリガー: 勉強会や研修資料の作成依頼
+   機能: P-Brainの活用事例を含む
+   勉強会用HTML資料を生成
+   出力: スライド形式HTMLファイル</code></div>`,
+
+    quiz:[
+      { q:"エージェントとコマンドの違いは？", opts:["違いはない","エージェントは自律的に計画→実行→検証","エージェントは有料","コマンドの方が高機能"], ans:1, explain:"エージェントは自律的に計画を立て、実行し、結果を検証します。" },
+      { q:"スキルのファイル名は？", opts:["skill.yaml","SKILL.md","config.json","command.md"], ans:1, explain:"スキルは SKILL.md というMarkdownファイルで定義します。" },
+      { q:"スキルが使えるプラットフォームは？", opts:["Codeのみ","WebとDesktop","Code/Web/Desktop全て","API経由のみ"], ans:2, explain:"スキルはClaude Code、Claude Web、Claude Desktopの全てで利用できます。" }
+    ]
+  },
+  {
+    id:12, title:"総合実践プロジェクト", time:"30分", icon:"🎯", phase:4,
+    learn:`
+<div class="content-card"><h4>構築するシステム</h4>
+<ul><li>🌅 <strong>朝のルーティン自動化</strong> — 日次レポート・メール確認</li>
+<li>⚡ <strong>ワンコマンド資料生成</strong> — /estimate, /email, /report等</li>
+<li>📊 <strong>分析ダッシュボード</strong> — KPIモニタリング</li>
+<li>🎨 <strong>LP制作パイプライン</strong> — テンプレートからLP量産</li></ul></div>
+
+<div class="diagram"><p style="font-size:12px;font-weight:600;text-align:center;margin-bottom:8px">🎯 ゴール</p>
+<div class="diagram-row"><div class="diagram-box highlight" style="padding:12px 20px;font-size:13px">指示するだけで<br>数時間の業務が<br>数分で完了する環境</div></div></div>`,
+
+    practice:`
+<div class="content-card"><h4>業務自動化環境を一括構築</h4></div>
+<div class="terminal"><button class="copy-btn" onclick="copyCode(this)">コピー</button><code>P-Brainの業務自動化環境を一括構築して：
+
+1. CLAUDE.md（プロジェクト指示書）
+2. カスタムコマンド5つ:
+   - /estimate（見積書生成）
+   - /email（メール作成）
+   - /report（レポート生成）
+   - /analyze（データ分析）
+   - /lp（LP生成）
+3. スキル3つ:
+   - competitor-analysis（競合分析）
+   - seminar-material（勉強会資料）
+   - monthly-report（月次レポート）
+4. テンプレートフォルダ:
+   templates/ に各種テンプレート
+5. README.md:
+   使い方ガイド
+
+すべてのファイルを適切なフォルダに配置して。</code></div>`,
+
+    quiz:[
+      { q:"この講座の最終ゴールは？", opts:["プログラミング習得","指示だけで業務完了する環境構築","AI資格取得","転職準備"], ans:1, explain:"日本語で指示するだけで業務が完了する自動化環境を構築することがゴールです。" },
+      { q:"学んだスキルの正しい組み合わせは？", opts:["CLAUDE.mdだけ","コマンドとスキルだけ","CLAUDE.md + コマンド + スキル + MCP","MCPだけ"], ans:2, explain:"CLAUDE.md（指示書）+ コマンド（手動実行）+ スキル（自動認識）+ MCP（外部連携）の組み合わせが最強です。" },
+      { q:"さらなる改善方法は？", opts:["新しいツール導入","使いながらCLAUDE.mdとコマンドを育てる","全て作り直す","外注する"], ans:1, explain:"実際に使いながらCLAUDE.mdやコマンドを継続的に改善していくことが大切です。" }
+    ]
+  }
+];
+
+// ===== STATE =====
+const STORAGE_KEY = "cc-learn-state";
+let state = { completed:[], scores:{}, bookmarks:[] };
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) state = JSON.parse(s);
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+loadState();
+
+// ===== TABS =====
+let currentTab = 0;
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('main-header').style.display = '';
+  document.getElementById('detail-header').style.display = 'none';
+
+  if (idx === 0) {
+    document.getElementById('tab-learn').classList.add('active');
+    renderStepList();
+  } else if (idx === 1) {
+    document.getElementById('tab-progress').classList.add('active');
+    renderProgress();
+  } else {
+    document.getElementById('tab-update').classList.add('active');
+  }
+  document.getElementById('nav'+idx).classList.add('active');
+}
+
+// ===== STEP LIST =====
+function renderStepList() {
+  const el = document.getElementById('step-list');
+  let html = '';
+  PHASES.forEach(ph => {
+    const steps = STEPS.filter(s => s.phase === ph.id);
+    const done = steps.filter(s => state.completed.includes(s.id)).length;
+    html += `<div class="phase-group">
+      <div class="phase-header" style="background:${ph.color}22;color:${ph.color}">
+        ${ph.name} <span style="font-size:11px;margin-left:auto">${done}/${steps.length}</span>
+      </div>`;
+    steps.forEach(s => {
+      const isDone = state.completed.includes(s.id);
+      const score = state.scores[s.id];
+      html += `<div class="step-card ${isDone?'completed':''}" onclick="showDetail(${s.id})">
+        <div class="step-icon" style="background:${ph.color}22">${s.icon}</div>
+        <div class="step-info"><h3>${s.title}</h3><p>Step ${s.id}</p></div>
+        <div class="step-meta">
+          ${isDone ? '<div class="check">✅</div>' : `<div class="time">⏱${s.time}</div>`}
+          ${score !== undefined ? `<div class="score">${score}/3</div>` : ''}
+        </div></div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ===== DETAIL =====
+let currentStep = null;
+function showDetail(id) {
+  currentStep = STEPS.find(s => s.id === id);
+  document.getElementById('tab-learn').classList.remove('active');
+  document.getElementById('detail-view').style.display = 'block';
+  document.getElementById('main-header').style.display = 'none';
+  document.getElementById('detail-header').style.display = '';
+  document.getElementById('detail-title').textContent = `Step ${currentStep.id}: ${currentStep.title}`;
+  document.getElementById('detail-subtitle').textContent = `⏱ ${currentStep.time}`;
+
+  document.getElementById('sub-learn').innerHTML = currentStep.learn;
+  document.getElementById('sub-practice').innerHTML = currentStep.practice;
+  renderQuiz();
+  switchSub(0);
+}
+
+function showList() {
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('tab-learn').classList.add('active');
+  document.getElementById('main-header').style.display = '';
+  document.getElementById('detail-header').style.display = 'none';
+  renderStepList();
+}
+
+function switchSub(idx) {
+  document.querySelectorAll('.sub-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.sub-content').forEach((t,i) => t.classList.toggle('active', i===idx));
+}
+
+// ===== QUIZ =====
+function renderQuiz() {
+  const el = document.getElementById('sub-test');
+  if (!currentStep) return;
+  const quiz = currentStep.quiz;
+  const isDone = state.completed.includes(currentStep.id);
+  let html = '';
+
+  if (isDone) {
+    html += `<div class="content-card" style="text-align:center"><p>✅ このステップは完了済みです（スコア: ${state.scores[currentStep.id]||0}/3）</p>
+    <button class="retry-btn" onclick="retryQuiz()">もう一度挑戦</button></div>`;
+  }
+
+  quiz.forEach((q, qi) => {
+    html += `<div class="quiz-q" id="qq-${qi}"><p class="q-label">Q${qi+1}/3</p><p>${q.q}</p>`;
+    q.opts.forEach((opt, oi) => {
+      html += `<button class="quiz-btn" onclick="answer(${qi},${oi})" id="qb-${qi}-${oi}" ${isDone?'disabled':''}>${opt}</button>`;
+    });
+    html += `<div class="quiz-explain" id="qe-${qi}">✅ ${q.explain}</div></div>`;
+  });
+
+  html += `<div class="quiz-result" id="quiz-result"><h4 id="qr-title"></h4><p id="qr-text"></p></div>`;
+  el.innerHTML = html;
+  window._quizAnswered = [false,false,false];
+  window._quizCorrect = 0;
+}
+
+function retryQuiz() {
+  state.completed = state.completed.filter(id => id !== currentStep.id);
+  delete state.scores[currentStep.id];
+  saveState();
+  renderQuiz();
+}
+
+function answer(qi, oi) {
+  if (window._quizAnswered[qi]) return;
+  window._quizAnswered[qi] = true;
+  const q = currentStep.quiz[qi];
+  const correct = oi === q.ans;
+  if (correct) window._quizCorrect++;
+
+  // Disable all buttons in this question
+  q.opts.forEach((_, i) => {
+    const btn = document.getElementById(`qb-${qi}-${i}`);
+    btn.disabled = true;
+    if (i === q.ans) btn.classList.add('correct');
+    if (i === oi && !correct) btn.classList.add('wrong');
+  });
+  document.getElementById(`qe-${qi}`).style.display = 'block';
+
+  // Check if all answered
+  if (window._quizAnswered.every(a => a)) {
+    const score = window._quizCorrect;
+    state.scores[currentStep.id] = score;
+    if (!state.completed.includes(currentStep.id)) {
+      state.completed.push(currentStep.id);
+    }
+    saveState();
+
+    const result = document.getElementById('quiz-result');
+    result.style.display = 'block';
+    document.getElementById('qr-title').textContent = score === 3 ? '🎉 パーフェクト！' : score >= 2 ? '👍 よくできました！' : '📖 復習しましょう';
+    document.getElementById('qr-text').textContent = `${score}/3 問正解 — ステップ完了！`;
+  }
+}
+
+// ===== COPY =====
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✓ コピー済み';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ===== PROGRESS =====
+function renderProgress() {
+  const el = document.getElementById('tab-progress');
+  const total = STEPS.length;
+  const done = state.completed.length;
+  const pct = Math.round((done/total)*100);
+  const r = 60, c = 2*Math.PI*r;
+  const offset = c - (pct/100)*c;
+
+  let html = `<div class="progress-ring-wrap">
+    <svg width="140" height="140" viewBox="0 0 140 140">
+      <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+      <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--accent)" stroke-width="10"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+        stroke-linecap="round" transform="rotate(-90 70 70)"
+        style="transition:stroke-dashoffset .6s"/>
+      <text x="70" y="70" text-anchor="middle" dominant-baseline="central"
+        fill="var(--text)" font-size="28" font-weight="700">${pct}%</text>
+    </svg>
+    <p>${done}/${total} ステップ完了</p></div>`;
+
+  PHASES.forEach(ph => {
+    const steps = STEPS.filter(s => s.phase === ph.id);
+    const phDone = steps.filter(s => state.completed.includes(s.id)).length;
+    const phPct = Math.round((phDone/steps.length)*100);
+    html += `<div class="phase-progress">
+      <h4><span style="color:${ph.color}">${ph.name}</span> <span style="font-size:11px;color:var(--text-dim)">${phDone}/${steps.length}</span></h4>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${phPct}%;background:${ph.color}"></div></div></div>`;
+  });
+
+  html += '<h4 style="margin:20px 0 8px;font-size:14px">テストスコア</h4>';
+  STEPS.forEach(s => {
+    const score = state.scores[s.id];
+    const isDone = state.completed.includes(s.id);
+    const bgColor = score === 3 ? 'var(--success)' : score >= 2 ? 'var(--warning)' : score !== undefined ? 'var(--danger)' : 'var(--surface2)';
+    html += `<div class="score-item">
+      <span>Step ${s.id}: ${s.title}</span>
+      <span class="score-badge" style="background:${bgColor}22;color:${bgColor === 'var(--surface2)' ? 'var(--text-dim)' : bgColor}">
+        ${score !== undefined ? score+'/3' : '未受験'}
+      </span></div>`;
+  });
+
+  html += '<button class="reset-btn" onclick="resetProgress()">🗑️ 進捗をリセット</button>';
+  el.innerHTML = html;
+}
+
+function resetProgress() {
+  if (confirm('本当にすべての進捗をリセットしますか？')) {
+    state = { completed:[], scores:{}, bookmarks:[] };
+    saveState();
+    renderProgress();
+  }
+}
+
+// ===== UPDATE TAB =====
+async function fetchUpdates() {
+  const btn = document.getElementById('fetchBtn');
+  const result = document.getElementById('update-result');
+  btn.disabled = true;
+  result.innerHTML = '<div class="loading"><span class="spinner"></span>最新情報を取得中...</div>';
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{
+          role: "user",
+          content: "Claude Codeの最新アップデート情報を3〜5件調べて、JSON配列で返してください。形式: [{\"title\":\"タイトル\",\"date\":\"日付\",\"summary\":\"50文字以内の概要\",\"impact\":\"high/medium/low\"}] JSONのみ出力。"
+        }]
+      })
+    });
+
+    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+    const data = await res.json();
+
+    // Extract text from response
+    let text = '';
+    if (data.content) {
+      data.content.forEach(block => {
+        if (block.type === 'text') text += block.text;
+      });
+    }
+
+    // Parse JSON from response
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('JSONが見つかりません');
+    const updates = JSON.parse(match[0]);
+
+    let html = '';
+    updates.forEach(u => {
+      const impactClass = u.impact === 'high' ? 'impact-high' : u.impact === 'medium' ? 'impact-medium' : 'impact-low';
+      const impactLabel = u.impact === 'high' ? '重要' : u.impact === 'medium' ? '中' : '低';
+      html += `<div class="update-card">
+        <h4>${u.title} <span class="impact-badge ${impactClass}">${impactLabel}</span></h4>
+        <div class="date">📅 ${u.date || '不明'}</div>
+        <div class="summary">${u.summary}</div>
+      </div>`;
+    });
+    result.innerHTML = '<div class="update-cards">' + html + '</div>';
+  } catch(e) {
+    result.innerHTML = `<div class="error-msg">❌ 情報の取得に失敗しました: ${e.message}<br><br>※ APIキーが必要な場合があります。ローカル環境ではこの機能は使用できない場合があります。</div>`;
+  }
+  btn.disabled = false;
+}
+
+// ===== INIT =====
+renderStepList();
+</script>
+</body>
+</html>

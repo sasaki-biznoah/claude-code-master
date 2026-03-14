@@ -309,13 +309,87 @@ nav button.active { color:var(--accent); font-weight:600; }
 .loading { text-align:center; padding:20px; color:var(--text-dim); font-size:13px; }
 .spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; margin-right:8px; vertical-align:middle; }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* Welcome screen */
+#welcome-screen {
+  position:fixed; inset:0; z-index:999;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+.welcome-card {
+  background:var(--surface); border-radius:20px;
+  padding:40px 24px; text-align:center;
+  box-shadow: var(--shadow-lg); width:100%; max-width:380px;
+}
+.welcome-card h2 { font-size:22px; font-weight:800; margin-bottom:6px; }
+.welcome-card p { font-size:13px; color:var(--text-dim); margin-bottom:24px; line-height:1.6; }
+.welcome-input {
+  width:100%; padding:14px 16px;
+  border:2px solid var(--border); border-radius:12px;
+  font-size:15px; background:var(--surface2);
+  color:var(--text); outline:none;
+  font-family:inherit; text-align:center;
+  transition: border-color .2s;
+}
+.welcome-input:focus { border-color:var(--accent); }
+.welcome-input::placeholder { color:var(--text-dim); }
+.welcome-start {
+  display:block; width:100%; margin-top:16px; padding:14px;
+  background:var(--accent); color:#fff; border:none;
+  border-radius:12px; font-size:15px; font-weight:600;
+  cursor:pointer; transition:all .2s;
+  box-shadow: 0 4px 14px rgba(37,99,235,.3);
+}
+.welcome-start:hover { box-shadow: 0 6px 20px rgba(37,99,235,.4); }
+.welcome-start:disabled { opacity:.4; cursor:default; }
+
+/* User greeting */
+.user-greeting {
+  font-size:12px; color:var(--accent); font-weight:600; margin-top:2px;
+}
+
+/* Backup/Restore buttons */
+.data-actions {
+  display:flex; gap:8px; margin-top:16px;
+}
+.data-btn {
+  flex:1; padding:12px; border-radius:var(--radius);
+  font-size:13px; font-weight:500; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface);
+  color:var(--text); transition:all .2s;
+  box-shadow: var(--shadow-sm);
+}
+.data-btn:hover { border-color:var(--accent); color:var(--accent); }
+.data-btn.restore { background:var(--surface2); }
+
+/* Switch user */
+.switch-user-btn {
+  display:block; width:100%; margin-top:10px; padding:12px;
+  background:var(--surface); color:var(--text-dim); border:1px solid var(--border);
+  border-radius:var(--radius); font-size:13px; cursor:pointer;
+  transition:all .2s;
+}
+.switch-user-btn:hover { border-color:var(--accent); color:var(--accent); }
 </style>
 </head>
 <body>
 
+<!-- Welcome Screen -->
+<div id="welcome-screen" style="display:none">
+  <div class="welcome-card">
+    <div style="font-size:48px;margin-bottom:12px">📘</div>
+    <h2>Claude Code マスター講座</h2>
+    <p>あなたのお名前を入力してください。<br>学習の進捗が名前ごとに保存されます。</p>
+    <input type="text" class="welcome-input" id="nameInput" placeholder="例: 佐藤太郎" maxlength="20">
+    <button class="welcome-start" id="startBtn" disabled onclick="startLearning()">学習を始める</button>
+  </div>
+</div>
+
 <header id="main-header">
   <h1>📘 Claude Code マスター講座</h1>
   <p>ゼロから学ぶAI開発パートナー活用術</p>
+  <div class="user-greeting" id="userGreeting"></div>
 </header>
 <header id="detail-header" style="display:none">
   <button class="back-btn" onclick="showList()">←</button>
@@ -898,20 +972,115 @@ output/p-brain-lp.html に保存：
   }
 ];
 
-// ===== STATE =====
-const STORAGE_KEY = "cc-learn-state";
+// ===== USER & STATE =====
+const USER_KEY = "cc-learn-user";
+let currentUser = '';
 let state = { completed:[], scores:{}, bookmarks:[] };
+
+function getStorageKey() {
+  return "cc-learn-" + currentUser;
+}
 
 function loadState() {
   try {
-    const s = localStorage.getItem(STORAGE_KEY);
+    const s = localStorage.getItem(getStorageKey());
     if (s) state = JSON.parse(s);
-  } catch(e) {}
+    else state = { completed:[], scores:{}, bookmarks:[] };
+  } catch(e) {
+    state = { completed:[], scores:{}, bookmarks:[] };
+  }
 }
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(getStorageKey(), JSON.stringify(state));
 }
-loadState();
+
+function checkUser() {
+  const saved = localStorage.getItem(USER_KEY);
+  if (saved) {
+    currentUser = saved;
+    loadState();
+    document.getElementById('welcome-screen').style.display = 'none';
+    document.getElementById('userGreeting').textContent = currentUser + ' さん';
+    renderStepList();
+  } else {
+    document.getElementById('welcome-screen').style.display = 'flex';
+  }
+}
+
+function startLearning() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return;
+  currentUser = name;
+  localStorage.setItem(USER_KEY, name);
+  loadState();
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('userGreeting').textContent = name + ' さん';
+  renderStepList();
+}
+
+function switchUser() {
+  if (!confirm('ユーザーを切り替えますか？\n（進捗はそれぞれ保存されています）')) return;
+  localStorage.removeItem(USER_KEY);
+  currentUser = '';
+  state = { completed:[], scores:{}, bookmarks:[] };
+  document.getElementById('welcome-screen').style.display = 'flex';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('startBtn').disabled = true;
+  switchTab(0);
+}
+
+function exportProgress() {
+  const data = {
+    user: currentUser,
+    state: state,
+    exported: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `claude-code-progress-${currentUser}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importProgress() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.state || !data.user) throw new Error('invalid');
+        currentUser = data.user;
+        state = data.state;
+        localStorage.setItem(USER_KEY, currentUser);
+        saveState();
+        document.getElementById('userGreeting').textContent = currentUser + ' さん';
+        alert('進捗を復元しました: ' + currentUser + ' さん\n完了: ' + state.completed.length + '/12 ステップ');
+        switchTab(1);
+      } catch(err) {
+        alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Setup welcome input
+document.getElementById('nameInput').addEventListener('input', function() {
+  document.getElementById('startBtn').disabled = !this.value.trim();
+});
+document.getElementById('nameInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && this.value.trim()) startLearning();
+});
+
+checkUser();
 
 // ===== TABS =====
 let currentTab = 0;
@@ -1078,6 +1247,7 @@ function renderProgress() {
   const offset = c - (pct/100)*c;
 
   let html = `<div class="progress-ring-wrap">
+    <p style="font-weight:700;font-size:16px;margin-bottom:8px">👤 ${currentUser} さんの進捗</p>
     <svg width="140" height="140" viewBox="0 0 140 140">
       <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="10"/>
       <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--accent)" stroke-width="10"
@@ -1110,6 +1280,11 @@ function renderProgress() {
       </span></div>`;
   });
 
+  html += `<div class="data-actions">
+    <button class="data-btn" onclick="exportProgress()">📥 進捗をバックアップ</button>
+    <button class="data-btn restore" onclick="importProgress()">📤 バックアップから復元</button>
+  </div>`;
+  html += '<button class="switch-user-btn" onclick="switchUser()">👤 ユーザーを切り替える</button>';
   html += '<button class="reset-btn" onclick="resetProgress()">🗑️ 進捗をリセット</button>';
   el.innerHTML = html;
 }
@@ -1178,7 +1353,7 @@ async function fetchUpdates() {
 }
 
 // ===== INIT =====
-renderStepList();
+// initialized via checkUser() above
 </script>
 </body>
 </html>
